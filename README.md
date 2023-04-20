@@ -8,5 +8,6 @@ This is an implementation of Conway's Game of Life, a cellular automaton created
 
 ### Requirements
 C++11 or higher
+
 SDL2 library
 
