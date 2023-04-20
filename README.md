@@ -1,5 +1,5 @@
 <p align="center">
-<img src="images/gameoflifegithub.gif" alt="gif" width=600>
+<img src="gif/gameoflifegithub.gif" alt="gif" width=600>
 </p>
 
 ## Conway's Game of Life 
