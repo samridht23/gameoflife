@@ -1,35 +1,73 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_error.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_timer.h>
-#include <SDL2/SDL_video.h>
 #include <iostream>
 #include <vector>
 
-const int window_width = 1000;
-const int window_height = 800;
-const int grid_size = 10;
+const int window_width = 600;
+const int window_height = 400;
+const int cell_size = 6;
 
 bool grid[window_width][window_height];
-
-SDL_Window *window = nullptr;
-SDL_Renderer *renderer = nullptr;
-
-void initPos() {
-  grid[20][20] = true;
-  grid[20][30] = true;
-  grid[20][40] = true;
+int neighbourCount(int x, int y) {
+  int count = 0;
+  int rowOffsets[] = {-cell_size, -cell_size, -cell_size, 0,
+                      0,          cell_size,  cell_size,  cell_size};
+  int colOffsets[] = {-cell_size, 0,          cell_size, -cell_size,
+                      cell_size,  -cell_size, 0,         cell_size};
+  for (int i = 0; i < 8; i++) {
+    int row = x + rowOffsets[i];
+    int col = y + colOffsets[i];
+    if (row >= 0 && row < window_width && col >= 0 && col < window_height) {
+      if (grid[row][col]) {
+        count += 1;
+      }
+    }
+  }
+  return count;
 }
 
-void updateState() {
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_RenderClear(renderer);
-  for (int i = 0; i <= window_width; i += grid_size) {
-    for (int j = 0; j <= window_height; j += grid_size) {
+void calculateState() {
+  bool tempGrid[window_width][window_height];
+  for (int i = 0; i < window_width; i += cell_size) {
+    for (int j = 0; j < window_height; j += cell_size) {
+      int count = neighbourCount(i, j);
       if (grid[i][j]) {
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        SDL_Rect cell = {i, j, grid_size, grid_size};
+        if (count < 2)
+          tempGrid[i][j] = false;
+        else if (count == 2 || count == 3)
+          tempGrid[i][j] = grid[i][j];
+        else if (count > 3)
+          tempGrid[i][j] = false;
+      } else if (!grid[i][j]) {
+        if (count == 3)
+          tempGrid[i][j] = true;
+      }
+    }
+  }
+  for (int i = 0; i < window_width; i += cell_size) {
+    for (int j = 0; j < window_height; j += cell_size) {
+      grid[i][j] = tempGrid[i][j];
+    }
+  }
+}
+
+void seed(int cellNum) {
+  for (int i = 0; i < cellNum; i++) {
+    int max_row = window_width / cell_size;
+    int rand_row = (rand() % max_row) * cell_size;
+    int max_col = window_height / cell_size;
+    int rand_col = (rand() % max_col) * cell_size;
+    grid[rand_row][rand_col] = true;
+  }
+}
+
+void updateState(SDL_Renderer *renderer) {
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+  for (int i = 0; i < window_width; i += cell_size) {
+    for (int j = 0; j < window_height; j += cell_size) {
+      if (grid[i][j]) {
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        SDL_Rect cell = {i, j, cell_size - 1, cell_size - 1};
         SDL_RenderFillRect(renderer, &cell);
       }
     }
@@ -37,73 +75,31 @@ void updateState() {
   SDL_RenderPresent(renderer);
 }
 
-int neighbourCount(int x, int y) {
-  int count = 0;
-  int rowOffsets[] = {-10, -10, -10, 0, 0, 10, 10, 10};
-  int colOffsets[] = {-10, 0, 10, -10, 10, -10, 0, 10};
-  for (int i = 0; i < 8; i++) {
-    int newRow = x + rowOffsets[i];
-    int newCol = y + colOffsets[i];
-    // Check if the new row and column are within bounds
-    if (newRow >= 0 && newRow < window_width && newCol >= 0 &&
-        newCol < window_height) {
-      // Check if the neighboring cell is live (true)
-      if (grid[newRow][newCol]) {
-        count++;
-      }
-    }
-  }
-  return count;
-}
-void calculateState() {
-  for (int i = 0; i <= window_width; i += grid_size) {
-    for (int j = 0; j <= window_height; j += grid_size) {
-      int count = neighbourCount(i, j);
-      if (count < 2 && grid[i][j]) {
-        grid[i][j] = false;
-      } else if ((count == 2 || count == 3) && grid[i][j]) {
-        grid[i][j] = true;
-      } else if (count > 3 && grid[i][j]) {
-        grid[i][j] = false;
-      } else if (!grid[i][j] && count == 3) {
-        grid[i][j] = true;
-      }
-    }
-  }
-}
-
-bool initSDL() {
+int main() {
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-    std::cout << SDL_GetError() << "\n";
-    return false;
-  }
-  return true;
-}
-
-int main(int argc, char *argv[]) {
-  // SDL Init
-  if (!initSDL())
+    std::cout << SDL_GetError() << std::endl;
     return 1;
-  // Window Init
-  window = SDL_CreateWindow("Test", SDL_WINDOWPOS_CENTERED,
+  }
+  SDL_Window *window = nullptr;
+  SDL_Renderer *renderer = nullptr;
+  window = SDL_CreateWindow("Conway's Game of Life", SDL_WINDOWPOS_CENTERED,
                             SDL_WINDOWPOS_CENTERED, window_width, window_height,
-                            SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-  if (window == NULL) {
-    std::cout << SDL_GetError() << "\n";
+                            SDL_WINDOW_SHOWN);
+  if (window == nullptr) {
+    std::cout << SDL_GetError() << std::endl;
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 1;
   }
-  // Renderer Init
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  if (renderer == NULL) {
-    std::cout << SDL_GetError() << "\n";
+  if (renderer == nullptr) {
+    std::cout << SDL_GetError() << std::endl;
     SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
     SDL_Quit();
     return 1;
   }
-
-  // Main event loop
+  seed(1000);
   SDL_Event event;
   bool quit = false;
   while (!quit) {
@@ -112,13 +108,10 @@ int main(int argc, char *argv[]) {
         quit = true;
       }
     }
-    //initPos();
+    updateState(renderer);
     calculateState();
-    updateState();
-    SDL_Delay(1000);
+    SDL_Delay(50);
   }
-
-  // Code cleanup
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
