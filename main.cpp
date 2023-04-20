@@ -2,9 +2,9 @@
 #include <iostream>
 #include <vector>
 
-const int window_width = 600;
-const int window_height = 400;
-const int cell_size = 6;
+const int window_width = 1000;
+const int window_height = 600;
+const int cell_size = 10;
 
 bool grid[window_width][window_height];
 int neighbourCount(int x, int y) {
