@@ -4,7 +4,7 @@
 
 const int window_width = 1000;
 const int window_height = 600;
-const int cell_size = 10;
+const int cell_size = 4;
 
 bool grid[window_width][window_height];
 int neighbourCount(int x, int y) {
@@ -99,7 +99,7 @@ int main() {
     SDL_Quit();
     return 1;
   }
-  seed(1000);
+  seed(20000);
   SDL_Event event;
   bool quit = false;
   while (!quit) {
@@ -110,7 +110,7 @@ int main() {
     }
     updateState(renderer);
     calculateState();
-    SDL_Delay(50);
+    SDL_Delay(20);
   }
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
